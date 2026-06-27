@@ -76,6 +76,13 @@ function App() {
   // PWA Install Prompt Logic
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [isStandalone, setIsStandalone] = useState(false);
+  const [showInstallModal, setShowInstallModal] = useState(false);
+
+  // iOS check function
+  const checkIsIOS = () => {
+    return /iPad|iPhone|iPod/.test(navigator.userAgent) || 
+      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  };
 
   useEffect(() => {
     // Check if already in standalone mode
@@ -88,16 +95,25 @@ function App() {
       setDeferredPrompt(e);
     };
 
+    const handleAppInstalled = () => {
+      setIsStandalone(true);
+      setDeferredPrompt(null);
+      setShowInstallModal(false);
+      console.log('PWA installed successfully');
+    };
+
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    window.addEventListener('appinstalled', handleAppInstalled);
 
     return () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      window.removeEventListener('appinstalled', handleAppInstalled);
     };
   }, []);
 
   const handleInstallClick = () => {
     if (deferredPrompt) {
-      // Android: Trigger the native prompt
+      // Android / PC with native install prompt
       deferredPrompt.prompt();
       deferredPrompt.userChoice.then((choiceResult) => {
         if (choiceResult.outcome === 'accepted') {
@@ -105,8 +121,8 @@ function App() {
         }
       });
     } else {
-      // iOS / Others: Show manual instructions
-      alert("📲 앱 설치 방법\n\n[Android]\n메뉴(⋮) -> '앱 설치' 또는 '홈 화면에 추가'\n\n[iOS (iPhone)]\n공유(네모↑) 버튼 -> '홈 화면에 추가'");
+      // iOS / Fallback to custom modal
+      setShowInstallModal(true);
     }
   };
 
@@ -289,6 +305,81 @@ function App() {
                 />
               ))}
             </Document>
+          </div>
+        </div>
+      )}
+
+      {/* PWA Custom Install Guide Modal */}
+      {showInstallModal && (
+        <div className="pwa-modal-overlay" onClick={() => setShowInstallModal(false)}>
+          <div className="pwa-modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="pwa-modal-header">
+              <span className="pwa-modal-title">📲 앱 설치 안내</span>
+              <button className="pwa-modal-close" onClick={() => setShowInstallModal(false)}>×</button>
+            </div>
+            
+            <div className="pwa-modal-body">
+              <div className="pwa-app-info">
+                <img src="/app-icon-512.png" alt="App Icon" className="pwa-app-icon" />
+                <div className="pwa-app-meta">
+                  <span className="pwa-app-name">악보 뷰어</span>
+                  <span className="pwa-app-desc">바탕화면에 앱으로 설치하여 빠르게 접속하세요.</span>
+                </div>
+              </div>
+
+              <div className="pwa-steps">
+                {checkIsIOS() ? (
+                  // iOS Guide
+                  <>
+                    <div className="pwa-step">
+                      <span className="pwa-step-number">1</span>
+                      <span className="pwa-step-text">
+                        Safari 브라우저 하단(또는 상단)의 <span className="pwa-highlight">공유 버튼</span>
+                        <span className="pwa-icon-inline" style={{ marginLeft: '4px' }}>
+                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#007aff" strokeWidth="2">
+                            <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8M16 6l-4-4-4 4M12 2v13"/>
+                          </svg>
+                        </span>을 누릅니다.
+                      </span>
+                    </div>
+                    <div className="pwa-step">
+                      <span className="pwa-step-number">2</span>
+                      <span className="pwa-step-text">
+                        메뉴를 아래로 스크롤하여 <span className="pwa-highlight">홈 화면에 추가</span>를 선택합니다.
+                      </span>
+                    </div>
+                    <div className="pwa-step">
+                      <span className="pwa-step-number">3</span>
+                      <span className="pwa-step-text">
+                        우측 상단의 <span className="pwa-highlight">추가</span> 버튼을 누르면 설치가 완료됩니다!
+                      </span>
+                    </div>
+                  </>
+                ) : (
+                  // Android / PC Fallback Guide
+                  <>
+                    <div className="pwa-step">
+                      <span className="pwa-step-number">1</span>
+                      <span className="pwa-step-text">
+                        브라우저 우측 상단의 <span className="pwa-highlight">메뉴(⋮ 또는 ☰)</span> 버튼을 누릅니다.
+                      </span>
+                    </div>
+                    <div className="pwa-step">
+                      <span className="pwa-step-number">2</span>
+                      <span className="pwa-step-text">
+                        메뉴 항목 중 <span className="pwa-highlight">홈 화면에 추가</span> 또는 <span className="pwa-highlight">앱 설치</span>를 선택합니다.
+                      </span>
+                    </div>
+                    <div className="pwa-step">
+                      <span className="pwa-step-number">3</span>
+                      <span className="pwa-step-text">
+                        안내 팝업에 따라 설치를 완료하면 바탕화면에 앱 아이콘이 생성됩니다.
+                      </span>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       )}
