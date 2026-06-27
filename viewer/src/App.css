@@ -1,0 +1,275 @@
+/* Global Reset */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background-color: #f5f5f7;
+  /* iOS like light gray */
+  color: #333;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+input,
+textarea {
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+.app-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* Header */
+.header {
+  background-color: #fff;
+  padding: 1rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.header h1 {
+  font-size: 1.2rem;
+  color: #1a1a1a;
+  text-align: center;
+}
+
+.search-bar {
+  position: relative;
+  width: 100%;
+}
+
+.search-bar input {
+  width: 100%;
+  padding: 12px 16px;
+  border-radius: 20px;
+  border: 1px solid #ddd;
+  background-color: #f0f0f5;
+  font-size: 1rem;
+  outline: none;
+  transition: all 0.2s;
+}
+
+.search-bar input:focus {
+  background-color: #fff;
+  border-color: #007aff;
+  box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.2);
+}
+
+.clear-btn {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: #ccc;
+  border: none;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  color: white;
+  font-size: 0.8rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Content List */
+.content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px;
+  -webkit-overflow-scrolling: touch;
+  /* Smooth scrolling on iOS */
+}
+
+.song-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.song-item {
+  background: white;
+  padding: 15px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  transition: transform 0.1s;
+  cursor: pointer;
+}
+
+.song-item:active {
+  transform: scale(0.98);
+  background-color: #f9f9f9;
+}
+
+.song-icon {
+  font-size: 1.5rem;
+  background: #f0f0f5;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+}
+
+.song-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.song-title {
+  font-weight: 600;
+  font-size: 1.05rem;
+  color: #111;
+}
+
+.song-artist {
+  font-size: 0.85rem;
+  color: #666;
+}
+
+.no-results {
+  text-align: center;
+  padding: 40px;
+  color: #888;
+}
+
+.loading {
+  text-align: center;
+  padding: 20px;
+  color: #666;
+}
+
+/* PDF Modal */
+.pdf-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: white;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+}
+
+.pdf-header {
+  height: 50px;
+  background: #333;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 15px;
+}
+
+.pdf-title {
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 60%;
+}
+
+.pdf-controls {
+  display: flex;
+  gap: 10px;
+}
+
+.rotate-btn {
+  background: #34c759;
+  /* Green */
+  border: none;
+  color: white;
+  padding: 5px 12px;
+  border-radius: 15px;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.close-btn {
+  background: #007aff;
+  border: none;
+  color: white;
+  padding: 5px 12px;
+  border-radius: 15px;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.pdf-body {
+  flex: 1;
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  /* Enable scrolling for the canvas */
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  /* Start from top */
+  background: #525659;
+  /* Standard PDF background color */
+  padding: 10px 0;
+}
+
+.pdf-msg {
+  color: white;
+  margin-top: 50px;
+  font-size: 1.1rem;
+}
+
+/* React-PDF specific overrides if needed */
+.react-pdf__Page__canvas {
+  margin: 0 auto;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+  max-width: 100%;
+}
+
+.pdf-document {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  align-items: center;
+}
+
+/* External Monitor Mode (90 degree rotation) */
+.app-container.external-mode {
+  transform: rotate(90deg);
+  transform-origin: top left;
+  /* 
+     When rotated 90deg, width becomes height and height becomes width.
+     We need to translate it back into view. 
+  */
+  position: fixed;
+  top: 0;
+  left: 100%;
+  /* Move right by screen width */
+  width: 100vh;
+  /* Originally height */
+  height: 100vw;
+  /* Originally width */
+  z-index: 9999;
+  background-color: #f5f5f7;
+}
+
+/* Adjust header for external mode if needed */
+.app-container.external-mode .header {
+  padding-right: 2rem;
+}

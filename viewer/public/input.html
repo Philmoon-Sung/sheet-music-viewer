@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>악보 입력 툴 (멀티 페이지)</title>
+    <style>
+        body {
+            font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background-color: #f0f2f5;
+        }
+
+        .container {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 600px;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 2rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #555;
+            font-weight: bold;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 1rem;
+            box-sizing: border-box;
+        }
+
+        .file-drop-area {
+            border: 2px dashed #007bff;
+            border-radius: 5px;
+            padding: 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            position: relative;
+        }
+
+        .file-drop-area:hover {
+            background-color: #f8f9fa;
+        }
+
+        .file-drop-area input[type="file"] {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        .file-msg {
+            color: #007bff;
+            font-weight: 500;
+        }
+
+        button {
+            width: 100%;
+            padding: 1rem;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+
+        button.secondary {
+            background-color: #6c757d;
+            margin-top: 0.5rem;
+            padding: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        button.secondary:hover {
+            background-color: #545b62;
+        }
+
+        /* Preview Grid */
+        #preview-list {
+            margin-top: 1rem;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 10px;
+        }
+
+        .preview-item {
+            position: relative;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            overflow: hidden;
+            background: #fff;
+        }
+
+        .preview-item img {
+            width: 100%;
+            height: 120px;
+            object-fit: contain;
+            /* or cover */
+            background: #eee;
+            display: block;
+        }
+
+        .preview-item .page-num {
+            position: absolute;
+            top: 0;
+            left: 0;
+            background: rgba(0, 0, 0, 0.6);
+            color: white;
+            padding: 2px 6px;
+            font-size: 0.8rem;
+            border-bottom-right-radius: 5px;
+        }
+
+        .preview-item .file-name {
+            font-size: 0.8rem;
+            padding: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            text-align: center;
+        }
+
+        .message {
+            margin-top: 1rem;
+            text-align: center;
+            padding: 0.5rem;
+            border-radius: 5px;
+            display: none;
+        }
+
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>악보 업로드 (멀티 페이지)</h1>
+        <div class="form-group">
+            <label for="fileName">파일 이름 (확장자 제외)</label>
+            <input type="text" id="fileName" placeholder="예: 사랑의 인사">
+        </div>
+        <div class="form-group">
+            <label>파일 추가 (연속으로 추가 가능)</label>
+            <div class="file-drop-area" id="dropArea">
+                <span class="file-msg">클릭, 드래그, 또는 붙여넣기 (Ctrl+V)</span>
+                <!-- multiple attribute allowed, but we handle accumulation manually -->
+                <input type="file" id="fileInput" accept="image/*,application/pdf" multiple>
+            </div>
+
+            <div id="preview-list"></div>
+
+            <button id="clearBtn" class="secondary" style="display:none;">목록 비우기</button>
+        </div>
+        <button id="submitBtn" disabled>저장하기</button>
+        <div id="message" class="message"></div>
+    </div>
+
+    <div class="container" style="margin-top: 2rem;">
+        <h1>전체 악보 방향 일괄 점검</h1>
+        <div class="form-group">
+            <p style="color: #666; margin-bottom: 1rem;">
+                모든 악보를 순차적으로 스캔하여 거꾸로 된(180도) 악보를 찾아 자동으로 바로잡습니다.<br>
+                브라우저에서 처리하므로 창을 닫지 마세요.
+            </p>
+            <div style="margin-bottom: 10px;">
+                <label for="categorySelect" style="font-weight: bold;">점검 대상:</label>
+                <select id="categorySelect" style="padding: 5px; margin-left: 5px;">
+                    <option value="all">전체 (All)</option>
+                    <option value="가">가</option>
+                    <option value="나">나</option>
+                    <option value="다">다</option>
+                    <option value="라">라</option>
+                    <option value="마">마</option>
+                    <option value="바">바</option>
+                    <option value="사">사</option>
+                    <option value="아">아</option>
+                    <option value="자">자</option>
+                    <option value="차">차</option>
+                    <option value="카">카</option>
+                    <option value="타">타</option>
+                    <option value="파">파</option>
+                    <option value="하">하</option>
+                </select>
+            </div>
+            <button id="startBatchBtn" style="background-color: #28a745;">선택된 악보 점검 시작</button>
+            <div id="batchProgress" style="margin-top: 1rem; display: none;">
+                <div style="background: #eee; height: 20px; border-radius: 10px; overflow: hidden;">
+                    <div id="progressBar" style="width: 0%; height: 100%; background: #28a745; transition: width 0.3s;">
+                    </div>
+                </div>
+                <div id="progressText" style="text-align: center; margin-top: 5px; font-size: 0.9rem; color: #555;">0 /
+                    0</div>
+                <div id="batchLog"
+                    style="max-height: 200px; overflow-y: auto; border: 1px solid #ddd; padding: 10px; margin-top: 10px; font-size: 0.8rem; background: #fafafa;">
+                </div>
+            </div>
+        </div>
+
+        <!-- NEW: Manual Correction Section -->
+        <div class="form-group" style="margin-top: 2rem; border-top: 1px solid #ddd; padding-top: 1rem;">
+            <h3>🛠️ 특정 악보 수동 교정</h3>
+            <p style="color: #666; font-size: 0.9rem;">자동 점검에서 해결되지 않은 악보(예: 환희)를 찾아 강제로 뒤집습니다.</p>
+            <div style="display: flex; gap: 10px; margin-top: 10px;">
+                <input type="text" id="manualSearchInput" placeholder="곡명 입력 (예: 환희)"
+                    style="flex: 1; min-width: 200px; padding: 10px; font-size: 1rem; border: 1px solid #ccc; border-radius: 4px;">
+                <button id="manualSearchBtn"
+                    style="background: #007aff; color: white; border: none; padding: 10px 20px; font-size: 1rem; border-radius: 4px; cursor: pointer; white-space: nowrap;">검색</button>
+            </div>
+            <div id="manualResult"
+                style="margin-top: 10px; padding: 10px; border: 1px solid #eee; background: #fff; display: none;">
+                <!-- Search Result will appear here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Tesseract and PDF.js -->
+    <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.0.3/dist/tesseract.min.js"></script>
+
+    <script>
+        // Set worker src for PDF.js
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
+
+        const fileInput = document.getElementById('fileInput');
+        const dropArea = document.getElementById('dropArea');
+        const fileNameInput = document.getElementById('fileName');
+        const submitBtn = document.getElementById('submitBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const previewList = document.getElementById('preview-list');
+        const messageDiv = document.getElementById('message');
+
+        // Batch Elements
+        const startBatchBtn = document.getElementById('startBatchBtn');
+        const batchProgress = document.getElementById('batchProgress');
+        const progressBar = document.getElementById('progressBar');
+        const progressText = document.getElementById('progressText');
+        const batchLog = document.getElementById('batchLog');
+
+        // Store files in an array
+        let fileList = [];
+
+        // --- Event Listeners ---
+
+        // File Input Change
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                addFiles(e.target.files);
+                fileInput.value = '';
+            }
+        });
+
+        // Paste
+        window.addEventListener('paste', (e) => {
+            if (e.clipboardData.files.length > 0) {
+                addFiles(e.clipboardData.files);
+            }
+        });
+
+        // Drag & Drop
+        dropArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropArea.style.backgroundColor = '#e9ecef';
+        });
+        dropArea.addEventListener('dragleave', () => {
+            dropArea.style.backgroundColor = 'transparent';
+        });
+        dropArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropArea.style.backgroundColor = 'transparent';
+            if (e.dataTransfer.files.length > 0) {
+                addFiles(e.dataTransfer.files);
+            }
+        });
+
+        // Clear List
+        clearBtn.addEventListener('click', () => {
+            fileList = [];
+            renderPreview();
+            validateForm();
+        });
+
+        fileNameInput.addEventListener('input', validateForm);
+
+        // Submit
+        submitBtn.addEventListener('click', uploadFiles);
+
+        // Batch Start
+        startBatchBtn.addEventListener('click', startBatchProcess);
+
+        // --- Functions ---
+
+        function addFiles(files) {
+            for (let i = 0; i < files.length; i++) {
+                fileList.push(files[i]);
+            }
+            renderPreview();
+            validateForm();
+        }
+
+        function renderPreview() {
+            previewList.innerHTML = '';
+
+            if (fileList.length === 0) {
+                clearBtn.style.display = 'none';
+                return;
+            }
+            clearBtn.style.display = 'block';
+
+            fileList.forEach((file, index) => {
+                const item = document.createElement('div');
+                item.className = 'preview-item';
+
+                const pageNum = document.createElement('div');
+                pageNum.className = 'page-num';
+                pageNum.textContent = `P${index + 1}`;
+
+                const img = document.createElement('img');
+
+                if (file.type.startsWith('image/')) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        img.src = e.target.result;
+                    };
+                    reader.readAsDataURL(file);
+                } else if (file.type === 'application/pdf') {
+                    img.src = 'https://upload.wikimedia.org/wikipedia/commons/8/87/PDF_file_icon.svg';
+                } else {
+                    img.src = '';
+                }
+
+                const nameDiv = document.createElement('div');
+                nameDiv.className = 'file-name';
+                nameDiv.textContent = file.name;
+
+                item.appendChild(pageNum);
+                item.appendChild(img);
+                item.appendChild(nameDiv);
+                previewList.appendChild(item);
+            });
+        }
+
+        function validateForm() {
+            if (fileList.length > 0 && fileNameInput.value.trim().length > 0) {
+                submitBtn.disabled = false;
+            } else {
+                submitBtn.disabled = true;
+            }
+        }
+
+        async function uploadFiles() {
+            if (fileList.length === 0 || !fileNameInput.value.trim()) return;
+
+            const formData = new FormData();
+            formData.append('title', fileNameInput.value.trim());
+            fileList.forEach(file => {
+                formData.append('files', file);
+            });
+
+            submitBtn.disabled = true;
+            submitBtn.textContent = '저장 중... (' + fileList.length + ' 페이지)';
+            messageDiv.style.display = 'none';
+
+            try {
+                const response = await fetch('/api/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    showMessage(result.message, 'success');
+                    fileList = [];
+                    fileNameInput.value = '';
+                    renderPreview();
+                    validateForm();
+                } else {
+                    showMessage(result.error || '업로드 실패', 'error');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showMessage('서버 오류가 발생했습니다.', 'error');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = '저장하기';
+            }
+        }
+
+        function showMessage(text, type) {
+            messageDiv.textContent = text;
+            messageDiv.className = 'message ' + type;
+            messageDiv.style.display = 'block';
+            setTimeout(() => {
+                messageDiv.style.display = 'none';
+            }, 5000);
+        }
+
+        // --- Batch Process Logic ---
+        async function startBatchProcess() {
+            if (!confirm('전체 악보를 검사하시겠습니까? (시간이 다소 소요될 수 있습니다)')) return;
+
+            startBatchBtn.disabled = true;
+            batchProgress.style.display = 'block';
+            batchLog.innerHTML = '<div>목록을 불러오는 중...</div>';
+
+            try {
+                // 1. Fetch check - handle specific category request
+                let url = '/api/songs';
+                const selectedCategory = document.getElementById('categorySelect').value;
+
+                const res = await fetch(url);
+                let songs = await res.json();
+
+                // Filter client-side if needed
+                if (selectedCategory !== 'all') {
+                    songs = songs.filter(s => s.category === selectedCategory);
+                }
+
+                const total = songs.length;
+                let processed = 0;
+                let fixed = 0;
+
+                batchLog.innerHTML += `<div>총 ${total}개의 악보를 발견했습니다. (${selectedCategory === 'all' ? '전체' : selectedCategory + ' 항목'}) 분석 시작...</div>`;
+
+                // Initialize Tesseract Worker ONCE
+                const worker = await Tesseract.createWorker(['eng', 'kor']);
+
+                for (const song of songs) {
+                    processed++;
+                    const percent = Math.round((processed / total) * 100);
+                    progressBar.style.width = `${percent}%`;
+                    progressText.textContent = `${processed} / ${total}`;
+
+                    // Scroll log to bottom
+                    batchLog.scrollTop = batchLog.scrollHeight;
+
+                    try {
+                        // Load PDF
+                        const pdf = await pdfjsLib.getDocument(song.fullPath).promise;
+                        const page = await pdf.getPage(1);
+
+                        // Render to Canvas (Low res is fine for coarse direction check? No, need readability)
+                        const viewport = page.getViewport({ scale: 1.5 });
+                        const canvas = document.createElement('canvas');
+                        const context = canvas.getContext('2d');
+                        canvas.height = viewport.height * 0.3; // Top 30%
+                        canvas.width = viewport.width;
+
+                        await page.render({
+                            canvasContext: context,
+                            viewport: viewport,
+                            transform: [1, 0, 0, 1, 0, 0] // No rotate, just crop
+                        }).promise;
+
+                        // 0 vs 180 Check
+                        // Check 0
+                        const { data: data0 } = await worker.recognize(canvas);
+                        const score0 = (data0.text.match(/[가-힣]/g) || []).length * 10 + data0.confidence;
+
+                        // Check 180
+                        const canvas180 = document.createElement('canvas');
+                        canvas180.width = canvas.width;
+                        canvas180.height = canvas.height;
+                        const ctx180 = canvas180.getContext('2d');
+                        ctx180.translate(canvas.width / 2, canvas.height / 2);
+                        ctx180.rotate(Math.PI);
+                        ctx180.drawImage(canvas, -canvas.width / 2, -canvas.height / 2);
+
+                        const { data: data180 } = await worker.recognize(canvas180);
+                        const score180 = (data180.text.match(/[가-힣]/g) || []).length * 10 + data180.confidence;
+
+                        // Updated Logic: Robust relative check
+                        if (score180 > score0 + 100) {
+                            batchLog.innerHTML += `<div style="color:red;">[발견] ${song.title} - 뒤집힘 감지 (Sc180:${Math.floor(score180)} vs Sc0:${Math.floor(score0)}) -> 수정 중...</div>`;
+
+                            // Send Rotate Request
+                            const rotRes = await fetch('/api/rotate-file', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    category: song.category,
+                                    filename: song.fileName,
+                                    angle: 180
+                                })
+                            });
+
+                            if (rotRes.ok) {
+                                fixed++;
+                                batchLog.innerHTML += `<div style="color:green;">  -> 수정 완료!</div>`;
+                            } else {
+                                batchLog.innerHTML += `<div style="color:orange;">  -> 서버 수정 실패</div>`;
+                            }
+
+                        } else {
+                            // Ambiguous
+                        }
+
+                        // --- Stability & Perf Improvements ---
+
+                        // 1. Release Canvas Memory explicitly
+                        context.clearRect(0, 0, canvas.width, canvas.height);
+
+                        // 2. Add delay
+                        await new Promise(r => setTimeout(r, 500));
+
+                    } catch (itemErr) {
+                        console.error("Item Error:", itemErr);
+                        batchLog.innerHTML += `<div style="color:orange;">[Error] ${song.title} 처리 중 오류 (스킵함): ${itemErr.message}</div>`;
+
+                        // Restart worker on error to prevent zombie state
+                        try {
+                            await worker.terminate();
+                            worker = await Tesseract.createWorker(['eng', 'kor']);
+                        } catch (wErr) {
+                            console.error("Worker Restart Failed:", wErr);
+                        }
+                    }
+                } // end loop
+
+                await worker.terminate();
+                batchLog.innerHTML += `<div style="font-weight:bold; margin-top:10px;">완료! 총 ${fixed}개의 악보를 바로잡았습니다.</div>`;
+                alert(`점검이 완료되었습니다. 총 ${fixed}개의 악보를 수정했습니다.`);
+
+            } catch (err) {
+                console.error(err);
+                alert('일괄 처리 중 치명적 오류 발생: ' + err.message);
+            } finally {
+                startBatchBtn.disabled = false;
+            }
+        }
+        // --- Manual Correction Logic ---
+        const manualSearchInput = document.getElementById('manualSearchInput');
+        const manualSearchBtn = document.getElementById('manualSearchBtn');
+        const manualResult = document.getElementById('manualResult');
+
+        manualSearchBtn.addEventListener('click', async () => {
+            const query = manualSearchInput.value.trim();
+            if (!query) return alert('곡명을 입력해주세요');
+
+            manualResult.style.display = 'block';
+            manualResult.innerHTML = '검색 중...';
+
+            try {
+                const res = await fetch('/api/songs');
+                const songs = await res.json();
+                const matched = songs.filter(s => s.title.includes(query) || s.fileName.includes(query));
+
+                if (matched.length === 0) {
+                    manualResult.innerHTML = '검색 결과가 없습니다.';
+                    return;
+                }
+
+                let html = '<ul style="list-style:none; padding:0;">';
+                matched.forEach(s => {
+                    html += `
+                    <li style="padding:10px; border-bottom:1px solid #eee; display:flex; justify-content:space-between; align-items:center;">
+                        <span>${s.category} / <strong>${s.title}</strong> (${s.fileName})</span>
+                        <button onclick="manualRotate('${s.category}', '${s.fileName}')" style="background:#dc3545; color:white; border:none; padding:5px 10px; border-radius:4px; cursor:pointer;">180도 회전</button>
+                    </li>`;
+                });
+                html += '</ul>';
+                manualResult.innerHTML = html;
+
+            } catch (e) {
+                console.error(e);
+                manualResult.innerHTML = '오류 발생: ' + e.message;
+            }
+        });
+
+        async function manualRotate(category, fileName) {
+            if (!confirm(`${fileName}을(를) 정말로 180도 회전하시겠습니까?`)) return;
+
+            try {
+                const res = await fetch('/api/rotate-file', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ category, filename: fileName, angle: 180 })
+                });
+
+                if (res.ok) {
+                    alert('성공적으로 회전되었습니다!');
+                    manualSearchBtn.click(); // Refresh list
+                } else {
+                    alert('서버 오류로 실패했습니다.');
+                }
+            } catch (e) {
+                alert('오류: ' + e.message);
+            }
+        }
+    </script>
+</body>
+
+</html>

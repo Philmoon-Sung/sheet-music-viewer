@@ -1,0 +1,6 @@
+[CRITICAL WARNING]
+This directory hosts a LIVE SERVICE (Sheet Music Server) actively used by multiple people.
+DO NOT MODIFY, DELETE, OR OVERWRITE any files in this directory unless explicitly requested by the user for maintenance purposes.
+Any new projects or code creation should be done in a SEPARATE directory to ensure stability.
+
+Last verified stable state: 2026-01-08 / Auto-restart and Ngrok configured.

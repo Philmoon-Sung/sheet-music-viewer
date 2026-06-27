@@ -1,0 +1,9 @@
+node_modules/
+.env
+*.log
+*.zip
+ngrok.exe
+cloudflared.exe
+.git/
+viewer/node_modules/
+viewer/dist/
